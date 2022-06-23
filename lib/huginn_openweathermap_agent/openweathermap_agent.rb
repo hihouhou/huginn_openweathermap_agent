@@ -73,6 +73,7 @@ module Agents
         'type' => '',
         'token' => '',
         'limit' => '',
+        'unit' => 'metric',
         'lat' => '',
         'lon' => '',
         'debug' => 'false',
@@ -84,17 +85,19 @@ module Agents
     form_configurable :debug, type: :boolean
     form_configurable :emit_events, type: :boolean
     form_configurable :expected_receive_period_in_days, type: :string
-    form_configurable :type, type: :array, values: ['current_weather']
+    form_configurable :type, type: :array, values: ['current_weather', 'air_pollution', 'onecall']
+    form_configurable :unit, type: :array, values: ['metric', 'standard', 'imperial']
     form_configurable :token, type: :string
     form_configurable :limit, type: :string
     form_configurable :lat, type: :string
     form_configurable :lon, type: :string
     def validate_options
-      errors.add(:base, "type has invalid value: should be 'current_weather'") if interpolated['type'].present? && !%w(current_weather).include?(interpolated['type'])
+      errors.add(:base, "type has invalid value: should be 'current_weather' 'air_pollution' 'onecall'") if interpolated['type'].present? && !%w(current_weather air_pollution onecall).include?(interpolated['type'])
 
-      errors.add(:base, "lon must be provided") if not interpolated['lon'].present? && interpolated['type'] == 'current_weather'
+      errors.add(:base, "unit has invalid value: should be 'metric' 'standard' 'imperial'") if interpolated['type'].present? && !%w(metric standard imperial).include?(interpolated['unit'])
+      errors.add(:base, "lon must be provided") if not interpolated['lon'].present? && ( interpolated['type'] == 'current_weather' or interpolated['type'] == 'air_pollution' or interpolated['type'] == 'onecall')
 
-      errors.add(:base, "lat must be provided") if not interpolated['lat'].present? && interpolated['type'] == 'current_weather'
+      errors.add(:base, "lat must be provided") if not interpolated['lat'].present? && ( interpolated['type'] == 'current_weather' or interpolated['type'] == 'air_pollution' or interpolated['type'] == 'onecall')
 
       unless options['token'].present?
         errors.add(:base, "token is a required field")
@@ -149,7 +152,25 @@ module Agents
 
     def get_current_weather()
 
-      uri = URI.parse("https://api.openweathermap.org/data/2.5/weather?lat=#{interpolated['lat']}&lon=#{interpolated['lon']}&appid=#{interpolated['token']}")
+      uri = URI.parse("https://api.openweathermap.org/data/2.5/weather?lat=#{interpolated['lat']}&units=#{interpolated['unit']}&lon=#{interpolated['lon']}&appid=#{interpolated['token']}")
+      response = Net::HTTP.get_response(uri)
+
+      log_curl_output(response.code,response.body)
+
+    end
+
+    def get_air_pollution()
+
+      uri = URI.parse("https://api.openweathermap.org/data/2.5/air_pollution?lat=#{interpolated['lat']}&units=#{interpolated['unit']}&lon=#{interpolated['lon']}&appid=#{interpolated['token']}")
+      response = Net::HTTP.get_response(uri)
+
+      log_curl_output(response.code,response.body)
+
+    end
+
+    def get_onecall()
+
+      uri = URI.parse("https://api.openweathermap.org/data/2.5/onecall?lat=#{interpolated['lat']}&units=#{interpolated['unit']}&lon=#{interpolated['lon']}&appid=#{interpolated['token']}")
       response = Net::HTTP.get_response(uri)
 
       log_curl_output(response.code,response.body)
@@ -161,6 +182,10 @@ module Agents
       case interpolated['type']
       when "current_weather"
         get_current_weather()
+      when "air_pollution"
+        get_air_pollution()
+      when "onecall"
+        get_onecall()
       else
         log "Error: type has an invalid value (#{type})"
       end
