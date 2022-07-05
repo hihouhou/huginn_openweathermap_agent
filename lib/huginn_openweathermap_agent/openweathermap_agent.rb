@@ -12,6 +12,8 @@ module Agents
 
       The weather forecast information is provided by Openweathermap. 
 
+      The `language` parameter to get the output in your language
+
       The `lat` (latitude) and `lon` (longitude) must be configured for current_weather. For example, San Francisco would be `37.7771,-122.4196`.
 
       You must set up an [API key for Openweathermap](https://home.openweathermap.org/api_keys) in order to use this Agent.
@@ -76,6 +78,7 @@ module Agents
         'unit' => 'metric',
         'lat' => '',
         'lon' => '',
+        'language' => 'en',
         'debug' => 'false',
         'emit_events' => 'true',
         'expected_receive_period_in_days' => '2',
@@ -89,6 +92,7 @@ module Agents
     form_configurable :unit, type: :array, values: ['metric', 'standard', 'imperial']
     form_configurable :token, type: :string
     form_configurable :limit, type: :string
+    form_configurable :language, type: :string
     form_configurable :lat, type: :string
     form_configurable :lon, type: :string
     def validate_options
@@ -98,6 +102,10 @@ module Agents
       errors.add(:base, "lon must be provided") if not interpolated['lon'].present? && ( interpolated['type'] == 'current_weather' or interpolated['type'] == 'air_pollution' or interpolated['type'] == 'onecall')
 
       errors.add(:base, "lat must be provided") if not interpolated['lat'].present? && ( interpolated['type'] == 'current_weather' or interpolated['type'] == 'air_pollution' or interpolated['type'] == 'onecall')
+
+      unless options['language'].present?
+        errors.add(:base, "language is a required field")
+      end
 
       unless options['token'].present?
         errors.add(:base, "token is a required field")
@@ -152,7 +160,7 @@ module Agents
 
     def get_current_weather()
 
-      uri = URI.parse("https://api.openweathermap.org/data/2.5/weather?lat=#{interpolated['lat']}&units=#{interpolated['unit']}&lon=#{interpolated['lon']}&appid=#{interpolated['token']}")
+      uri = URI.parse("https://api.openweathermap.org/data/2.5/weather?lat=#{interpolated['lat']}&units=#{interpolated['unit']}&lon=#{interpolated['lon']}&appid=#{interpolated['token']}&lang=#{interpolated['language']}")
       response = Net::HTTP.get_response(uri)
 
       log_curl_output(response.code,response.body)
@@ -161,7 +169,7 @@ module Agents
 
     def get_air_pollution()
 
-      uri = URI.parse("https://api.openweathermap.org/data/2.5/air_pollution?lat=#{interpolated['lat']}&units=#{interpolated['unit']}&lon=#{interpolated['lon']}&appid=#{interpolated['token']}")
+      uri = URI.parse("https://api.openweathermap.org/data/2.5/air_pollution?lat=#{interpolated['lat']}&units=#{interpolated['unit']}&lon=#{interpolated['lon']}&appid=#{interpolated['token']}&lang=#{interpolated['language']}")
       response = Net::HTTP.get_response(uri)
 
       log_curl_output(response.code,response.body)
@@ -170,7 +178,7 @@ module Agents
 
     def get_onecall()
 
-      uri = URI.parse("https://api.openweathermap.org/data/2.5/onecall?lat=#{interpolated['lat']}&units=#{interpolated['unit']}&lon=#{interpolated['lon']}&appid=#{interpolated['token']}")
+      uri = URI.parse("https://api.openweathermap.org/data/2.5/onecall?lat=#{interpolated['lat']}&units=#{interpolated['unit']}&lon=#{interpolated['lon']}&appid=#{interpolated['token']}&lang=#{interpolated['language']}")
       response = Net::HTTP.get_response(uri)
 
       log_curl_output(response.code,response.body)
